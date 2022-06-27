@@ -1,0 +1,40 @@
+groups:
+  - name: AllInstances
+    rules:
+    - alert: InstanceDown
+      expr: up == 0
+      for: 30s
+      labels:
+        severity: critical
+      annotations:
+        summary: Instance down (instance {{ $labels.instance }})
+        description: "Instance is down on {{ $labels.instance }}\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+
+    - alert: HostUnusualNetworkThroughputIn
+      expr: (sum by (instance) (rate(node_network_receive_bytes_total[1m])) / 1024 / 1024) * 8 > 50
+      for: 1m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host unusual network throughput in (instance {{ $labels.instance }})
+        description: "Host network interfaces are probably receiving too much data (> 50 Mb/s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+ 
+    - alert: HostHighCpuLoad
+      expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[1m])) * 100) > 85
+      for: 1m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host high CPU load (instance {{ $labels.instance }})
+        description: "CPU load is > 85%\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+        
+    ## Если поставить Traefik то можно узнать когда весь трафик на app упал.
+    - alert: TraefikServiceDown
+      expr: count(traefik_service_server_up) by (service) == 0
+      for: 0m
+      labels:
+        severity: critical
+      annotations:
+        summary: Traefik service down (instance {{ $labels.instance }})
+        description: "All Traefik services are down\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
